@@ -1,0 +1,13 @@
+Screen {
+    layout: vertical;
+}
+
+.box {
+    height: 1fr;
+    border: solid lightblue;
+}
+
+.label {
+    padding-left: 1;
+    width: 100%;
+}
