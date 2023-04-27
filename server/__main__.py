@@ -13,7 +13,7 @@ from .types import JSONObject
 
 
 class Client:
-    __valid_name = re.compile("^[a-z-]+$")
+    __valid_name = re.compile("^[a-z][a-z-]*[a-z]+$") # -names
 
     """A connection between a server and client."""
 
@@ -47,6 +47,7 @@ class Client:
                     print(f"Registering connection as user {name}")
                     self._server.add_user(self, name)
                     self._name = name
+                    self._handle_message = self._regular_handler
             case _:  # Ignore other messages.
                 pass
 
