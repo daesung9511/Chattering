@@ -7,8 +7,9 @@ from typing import Callable, Optional
 from websockets.exceptions import ConnectionClosedError
 from websockets.server import WebSocketServerProtocol, serve
 
+from .error import Error, InvalidUsernameError, NameInUseError
 from .message import IdentifyMessage, Message, MessageFactory, SendMessage
-from .reply import InvalidUsername, NameInUseReply, Reply
+from .reply import Reply
 from .types import JSONObject
 
 
@@ -28,6 +29,9 @@ class Client:
 
     def _reply(self, r: Reply) -> None:
         raise NotImplementedError()
+    
+    def _error(self, e: Error) -> None:
+        raise NotImplementedError()
 
     def _log_address(self, msg: str):
         print(f"{self._ws.remote_address}: {msg}")
@@ -38,11 +42,11 @@ class Client:
             case IdentifyMessage(name):
                 self._log_address(f"identify as {name}")
                 if not self.__valid_name.match(name):
-                    self._reply(InvalidUsername())
+                    self._error(InvalidUsernameError())
                     return
 
                 if self._server.get_user(name):
-                    self._reply(NameInUseReply(name))
+                    self._error(NameInUseError(name))
                 else:
                     print(f"Registering connection as user {name}")
                     self._server.add_user(self, name)
@@ -74,9 +78,13 @@ class Server:
     _connections: dict[WebSocketServerProtocol, Client]
     _users: dict[str, Client]  # Clients that have identified.
 
+    _message_factory: MessageFactory
+
     def __init__(self) -> None:
         self._connections = {}
         self._users = {}
+
+        self._message_factory = MessageFactory()
 
     def get_user(self, name: str) -> Optional[Client]:
         return self._users.get(name)
