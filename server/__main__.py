@@ -7,14 +7,15 @@ from typing import Callable, Optional
 from websockets.exceptions import ConnectionClosedError
 from websockets.server import WebSocketServerProtocol, serve
 
-from .error import Error, InvalidUsernameError, NameInUseError
+from .error import Error, InvalidUsernameError, NameInUseError, encode_error
 from .message import IdentifyMessage, Message, MessageFactory, SendMessage
-from .reply import Reply
+from .reply import Reply, ReplyFactory
 from .types import JSONObject
 
 
 class Client:
-    __valid_name = re.compile("^[a-z][a-z-]*[a-z]+$") # -names
+    # lowercase names that can have dashes inbetween but not at the start/end.
+    __valid_name = re.compile("^[a-z][a-z-]*[a-z]+$")
 
     """A connection between a server and client."""
 
@@ -24,14 +25,20 @@ class Client:
         self._server = server
         self._ws = ws
         self._message_factory = MessageFactory()
+        self._reply_factory = ReplyFactory()
         self._name = ""
         self._handle_message = self._identify_handler
 
+    async def _send(self, raw: str):
+        await self._ws.send(raw)
+
     def _reply(self, r: Reply) -> None:
-        raise NotImplementedError()
-    
+        reply_json = json.dumps(self._reply_factory.serialize(r))
+        asyncio.create_task(self._send(reply_json))
+
     def _error(self, e: Error) -> None:
-        raise NotImplementedError()
+        error_json = json.dumps(e, default=encode_error)
+        asyncio.create_task(self._send(error_json))
 
     def _log_address(self, msg: str):
         print(f"{self._ws.remote_address}: {msg}")
@@ -73,6 +80,10 @@ class Client:
         except ValueError:
             print("Bad JSON received. Ignoring.")
 
+    @property
+    def name(self) -> str:
+        return self._name
+
 
 class Server:
     _connections: dict[WebSocketServerProtocol, Client]
@@ -108,6 +119,8 @@ class Server:
             pass
         finally:
             del self._connections[ws]
+            if (name := client.name) and name in self._users:
+                del self._users[name]
 
         print(f"Disconnection from {ws.remote_address}")
 

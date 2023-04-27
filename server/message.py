@@ -6,14 +6,24 @@ Things like identifying, sending text messages, and joining/leaving channels.
 
 import abc
 from typing import Callable
+import enum
+import inspect
+
 
 from .types import JSONObject
+
+
+class MessageKind(enum.Enum):
+    IDENTIFY = "identify"
+    SEND = "send"
+    JOIN = "join"
+    PART = "part"
 
 
 class Message(abc.ABC):
     @staticmethod
     @abc.abstractmethod
-    def kind() -> str:
+    def kind() -> MessageKind:
         pass
 
 
@@ -24,20 +34,20 @@ class IdentifyMessage(Message):
         self.name = name
 
     @staticmethod
-    def kind() -> str:
-        return "identify"
+    def kind() -> MessageKind:
+        return MessageKind.IDENTIFY
 
 
 class SendMessage(Message):
     __match_args__ = ("content", "text")
 
-    def __init__(self, content: str, text: str) -> None:
+    def __init__(self, content: str, target: str) -> None:
         self.content = content
-        self.text = text
+        self.text = target
 
     @staticmethod
-    def kind() -> str:
-        return "send"
+    def kind() -> MessageKind:
+        return MessageKind.SEND
 
 
 class JoinMessage(Message):
@@ -47,8 +57,8 @@ class JoinMessage(Message):
         self.where = where
 
     @staticmethod
-    def kind() -> str:
-        return "join"
+    def kind() -> MessageKind:
+        return MessageKind.JOIN
 
 
 class PartMessage(Message):
@@ -58,18 +68,19 @@ class PartMessage(Message):
         self.where = where
 
     @staticmethod
-    def kind() -> str:
-        return "part"
+    def kind() -> MessageKind:
+        return MessageKind.PART
 
 
 class MessageFactory:
     __handlers: dict[str, Callable[[JSONObject], Message]]
 
     def __init__(self) -> None:
-        self.__handlers = {
-            IdentifyMessage.kind(): self.deserialize_identify_message,
-            SendMessage.kind(): self.deserialize_send_message,
-        }
+        self.__handlers = {}
+
+        for name, value in inspect.getmembers(self):
+            if name.startswith("deserialize_"):
+                self.__handlers[name[len("deserialize_") :]] = value
 
     def deserialize(self, kind: str, data: JSONObject):
         if handler := self.__handlers.get(kind):
@@ -77,8 +88,8 @@ class MessageFactory:
 
         raise ValueError(f"Message kind {kind} is not valid!")
 
-    def deserialize_identify_message(self, data: JSONObject) -> Message:
+    def deserialize_identify(self, data: JSONObject) -> Message:
         return IdentifyMessage(data["name"])
 
-    def deserialize_send_message(self, data: JSONObject) -> Message:
-        return SendMessage(data["content"], data["text"])
+    def deserialize_send(self, data: JSONObject) -> Message:
+        return SendMessage(data["content"], data["target"])

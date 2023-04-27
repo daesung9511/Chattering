@@ -6,13 +6,30 @@ As well as errors.
 """
 
 import abc
+from .types import JSONObject
 
 
 class Reply(abc.ABC):
     pass
 
 
-# TODO(Antonio): Implement User type
 class MessageReply(Reply):
-    def __init__(self, author: ...) -> None:
-        pass
+    __match_args__ = ("author", "where", "content")
+
+    def __init__(self, author: str, where: str, content: str) -> None:
+        self.author = author
+        self.where = where
+        self.content = content
+
+
+# TODO(Antonio): Rework to use inspect over manually matching.
+class ReplyFactory:
+    def serialize(self, reply: Reply) -> JSONObject:
+        match reply:
+            case MessageReply(author, where, content):
+                return {
+                    "kind": "message",
+                    "data": {"author": author, "where": where, "content": content},
+                }
+            case _:
+                raise ValueError(f"Invalid reply object: {reply}")

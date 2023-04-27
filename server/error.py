@@ -2,6 +2,8 @@ import abc
 import enum
 from enum import auto
 
+from .types import JSONObject
+
 
 class ErrorCode(enum.IntEnum):
     NAME_IN_USE = auto()
@@ -35,3 +37,8 @@ class InvalidUsernameError(Error):
 
     def code(self) -> int:
         return ErrorCode.NAME_IN_USE
+
+
+# Error objects are simple so a regular decoder will do.
+def encode_error(error: Error) -> JSONObject:
+    return {"error": error.message(), "code": error.code()}
