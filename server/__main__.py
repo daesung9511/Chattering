@@ -1,36 +1,79 @@
 import argparse
 import asyncio
 import json
+from typing import Callable, Optional
 
 from websockets.exceptions import ConnectionClosedError
 from websockets.server import WebSocketServerProtocol, serve
 
-from .message import MessageFactory, Message
+from .message import IdentifyMessage, Message, MessageFactory, SendMessage
+from .reply import NameInUseReply, Reply
 from .types import JSONObject
 
 
 class Client:
+    """A connection between a server and client."""
+
+    _handle_message: Callable[[Message], None]
+
     def __init__(self, server: "Server", ws: WebSocketServerProtocol) -> None:
         self._server = server
         self._ws = ws
         self._message_factory = MessageFactory()
+        self._name = ""
+        self._handle_message = self._identify_handler
+
+    def reply(self, r: Reply) -> None:
+        raise NotImplementedError()
+
+    # Handle only identify packets and reject other messages.
+    def _identify_handler(self, message: Message):
+        match message:
+            case IdentifyMessage(name):
+                # TODO(Antonio): Don't allow blank or invalid usernames.
+                print(f"Client wants to connect as '{name}'")
+                if self._server.get_user(name):
+                    print("Name in use!")
+                    self.reply(NameInUseReply(name))
+                else:
+                    print(f"Registering connection as user {name}")
+                    self._server.add_user(self, name)
+                    self._name = name
+            case _:  # Ignore other messages.
+                pass
+
+    # After registration we start the regular command loop.
+    def _regular_handler(self, message: Message):
+        match message:
+            case SendMessage(content, where):
+                print(f"{self._name} want to send to {where}:\n{content}")
+            case _:  # Ignore other messages.
+                pass
 
     def handle_message(self, message: Message) -> None:
-        raise NotImplementedError(message)
+        self._handle_message(message)
 
     def consume_raw(self, kind: str, data: JSONObject):
         try:
             message = self._message_factory.deserialize(kind, data)
             self.handle_message(message)
         except ValueError:
-            pass
+            print("Bad JSON received. Ignoring.")
 
 
 class Server:
     _connections: dict[WebSocketServerProtocol, Client]
+    _users: dict[str, Client]  # Clients that have identified.
 
     def __init__(self) -> None:
         self._connections = {}
+        self._users = {}
+
+    def get_user(self, name: str) -> Optional[Client]:
+        return self._users.get(name)
+
+    def add_user(self, client: Client, name: str):
+        self._users[name] = client
 
     async def handle_messages(self, ws: WebSocketServerProtocol):
         client = Client(self, ws)
