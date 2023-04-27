@@ -10,9 +10,6 @@ from typing import Callable
 from .types import JSONObject
 
 
-# TODO(Antonio): Include source?
-# Maybe not... the server knows who sent the message so we can attach it later.
-# Probably in the reply like
 class Message(abc.ABC):
     @staticmethod
     @abc.abstractmethod
@@ -21,6 +18,8 @@ class Message(abc.ABC):
 
 
 class IdentifyMessage(Message):
+    __match_args__ = ("name",)
+
     def __init__(self, name: str) -> None:
         self.name = name
 
@@ -30,9 +29,10 @@ class IdentifyMessage(Message):
 
 
 class SendMessage(Message):
-    def __init__(self, source: str, target: str, text: str) -> None:
-        self.source = source
-        self.target = target
+    __match_args__ = ("content", "text")
+
+    def __init__(self, content: str, text: str) -> None:
+        self.content = content
         self.text = text
 
     @staticmethod
@@ -41,12 +41,22 @@ class SendMessage(Message):
 
 
 class JoinMessage(Message):
+    __match_args__ = ("join",)
+
+    def __init__(self, where: str) -> None:
+        self.where = where
+
     @staticmethod
     def kind() -> str:
         return "join"
 
 
 class PartMessage(Message):
+    __match_args__ = ("part",)
+
+    def __init__(self, where: str) -> None:
+        self.where = where
+
     @staticmethod
     def kind() -> str:
         return "part"
@@ -61,9 +71,6 @@ class MessageFactory:
             SendMessage.kind(): self.deserialize_send_message,
         }
 
-    def test(self) -> Message:
-        return IdentifyMessage("foo")
-
     def deserialize(self, kind: str, data: JSONObject):
         if handler := self.__handlers.get(kind):
             return handler(data)
@@ -74,4 +81,4 @@ class MessageFactory:
         return IdentifyMessage(data["name"])
 
     def deserialize_send_message(self, data: JSONObject) -> Message:
-        return SendMessage(data["source"], data["target"], data["text"])
+        return SendMessage(data["content"], data["text"])
