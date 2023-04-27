@@ -1,17 +1,20 @@
 import argparse
 import asyncio
 import json
+import re
 from typing import Callable, Optional
 
 from websockets.exceptions import ConnectionClosedError
 from websockets.server import WebSocketServerProtocol, serve
 
 from .message import IdentifyMessage, Message, MessageFactory, SendMessage
-from .reply import NameInUseReply, Reply
+from .reply import InvalidUsername, NameInUseReply, Reply
 from .types import JSONObject
 
 
 class Client:
+    __valid_name = re.compile("^[a-z-]+$")
+
     """A connection between a server and client."""
 
     _handle_message: Callable[[Message], None]
@@ -23,18 +26,23 @@ class Client:
         self._name = ""
         self._handle_message = self._identify_handler
 
-    def reply(self, r: Reply) -> None:
+    def _reply(self, r: Reply) -> None:
         raise NotImplementedError()
+
+    def _log_address(self, msg: str):
+        print(f"{self._ws.remote_address}: {msg}")
 
     # Handle only identify packets and reject other messages.
     def _identify_handler(self, message: Message):
         match message:
             case IdentifyMessage(name):
-                # TODO(Antonio): Don't allow blank or invalid usernames.
-                print(f"Client wants to connect as '{name}'")
+                self._log_address(f"identify as {name}")
+                if not self.__valid_name.match(name):
+                    self._reply(InvalidUsername())
+                    return
+
                 if self._server.get_user(name):
-                    print("Name in use!")
-                    self.reply(NameInUseReply(name))
+                    self._reply(NameInUseReply(name))
                 else:
                     print(f"Registering connection as user {name}")
                     self._server.add_user(self, name)
@@ -46,7 +54,7 @@ class Client:
     def _regular_handler(self, message: Message):
         match message:
             case SendMessage(content, where):
-                print(f"{self._name} want to send to {where}:\n{content}")
+                self._log_address(f"{self._name} want to send to {where}:\n{content}")
             case _:  # Ignore other messages.
                 pass
 

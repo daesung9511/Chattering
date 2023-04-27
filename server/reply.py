@@ -12,6 +12,7 @@ from enum import auto
 
 class ErrorCode(enum.IntEnum):
     NAME_IN_USE = auto()
+    INVALID_NAME = auto()
 
 
 class Reply(abc.ABC):
@@ -37,8 +38,8 @@ class ErrorReply(Reply):
         pass
 
 
-class PleaseIdentifyReply(ErrorReply):
-    pass
+# class PleaseIdentifyReply(ErrorReply):
+#     pass
 
 
 class NameInUseReply(ErrorReply):
@@ -47,6 +48,14 @@ class NameInUseReply(ErrorReply):
 
     def message(self) -> str:
         return f"Name {self.name} is in use."
+
+    def code(self) -> int:
+        return ErrorCode.NAME_IN_USE
+
+
+class InvalidUsername(ErrorReply):
+    def message(self) -> str:
+        return "Invalid username."
 
     def code(self) -> int:
         return ErrorCode.NAME_IN_USE
