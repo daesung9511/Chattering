@@ -49,15 +49,16 @@ class Server:
 
         try:
             async for message in ws:
-                payload: JSONObject = json.loads(message)
-                kind = payload["kind"]
-                data = payload["data"]
-                client.consume_raw(kind, data)
+                try:
+                    payload: JSONObject = json.loads(message)
+                    kind = payload["kind"]
+                    data = payload["data"]
+                    client.consume_raw(kind, data)
+                except JSONDecodeError as ex:
+                    print(f"Bad JSON, error at {ex.lineno}:{ex.pos}. Ignoring:")
+                    print(ex.doc)
         except ConnectionClosedError:
             pass
-        except JSONDecodeError as ex:
-            print(f"Bad JSON, error at {ex.lineno}:{ex.pos}")
-            print(ex.doc)
         finally:
             del self._connections[ws]
             if (name := client.name) and name in self._users:
