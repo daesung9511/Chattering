@@ -37,6 +37,7 @@ class Server:
             print(f"Creating channel called {name}")
             channel = Channel(self, name)
             self._channels[name] = channel
+            return channel
 
     def add_user(self, client: Client, name: str):
         self._users[name] = client
