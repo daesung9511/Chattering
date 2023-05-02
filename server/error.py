@@ -8,6 +8,7 @@ from .types import JSONObject
 class ErrorCode(enum.IntEnum):
     NAME_IN_USE = auto()
     INVALID_NAME = auto()
+    NOT_IN_CHANNEL = auto()
 
 
 class Error(abc.ABC):
@@ -37,6 +38,17 @@ class InvalidUsernameError(Error):
 
     def code(self) -> int:
         return ErrorCode.NAME_IN_USE
+
+
+class NotInChannelError(Error):
+    def __init__(self, channel: str) -> None:
+        self.channel = channel
+
+    def message(self) -> str:
+        return f"Not in channel {self.channel}."
+
+    def code(self) -> int:
+        return ErrorCode.NOT_IN_CHANNEL
 
 
 # Error objects are simple so a regular decoder will do.

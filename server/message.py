@@ -39,11 +39,11 @@ class IdentifyMessage(Message):
 
 
 class SendMessage(Message):
-    __match_args__ = ("content", "text")
+    __match_args__ = ("content", "where")
 
-    def __init__(self, content: str, target: str) -> None:
+    def __init__(self, content: str, where: str) -> None:
         self.content = content
-        self.text = target
+        self.where = where
 
     @staticmethod
     def kind() -> MessageKind:
@@ -51,7 +51,7 @@ class SendMessage(Message):
 
 
 class JoinMessage(Message):
-    __match_args__ = ("join",)
+    __match_args__ = ("where",)
 
     def __init__(self, where: str) -> None:
         self.where = where
@@ -92,4 +92,7 @@ class MessageFactory:
         return IdentifyMessage(data["name"])
 
     def deserialize_send(self, data: JSONObject) -> Message:
-        return SendMessage(data["content"], data["target"])
+        return SendMessage(data["content"], data["where"])
+
+    def deserialize_join(self, data: JSONObject) -> Message:
+        return JoinMessage(data["where"])
