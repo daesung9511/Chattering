@@ -18,11 +18,12 @@ from .message import (
     IdentifyMessage,
     JoinMessage,
     LeaveMessage,
+    ListChannelsMessage,
     Message,
     MessageFactory,
     SendMessage,
 )
-from .reply import IdentifiedReply, MessageReply, Reply, ReplyFactory
+from .reply import IdentifiedReply, ListChannelsReply, MessageReply, Reply, ReplyFactory
 from .types import JSONObject
 
 if TYPE_CHECKING:
@@ -114,6 +115,9 @@ class Client:
                     channel.remove_user(self)
                 else:
                     self.error(NotInChannelError(where))
+            case ListChannelsMessage():
+                channel_names = self._server.get_channel_names()
+                self.reply(ListChannelsReply(channel_names))
             case _:  # Ignore other messages.
                 pass
 

@@ -34,6 +34,13 @@ class JoinedReply(Reply):
         self.where = where
 
 
+class ListChannelsReply(Reply):
+    __match_args__ = ("channels",)
+
+    def __init__(self, channels: list[str]) -> None:
+        self.channels = channels
+
+
 class ReplyFactory:
     def serialize(self, reply: Reply) -> JSONObject:
         match reply:
@@ -47,5 +54,7 @@ class ReplyFactory:
                 return {"kind": "join", "data": {"where": where}}
             case IdentifiedReply():
                 return {"kind": "identified", "data": {}}
+            case ListChannelsReply(channels):
+                return {"kind": "list_channels", "data": {"channels": channels}}
             case _:
                 raise ValueError(f"Invalid reply object: {reply}")

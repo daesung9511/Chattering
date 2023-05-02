@@ -5,10 +5,9 @@ Things like identifying, sending text messages, and joining/leaving channels.
 """
 
 import abc
-from typing import Callable
 import enum
 import inspect
-
+from typing import Callable
 
 from .types import JSONObject
 
@@ -17,7 +16,8 @@ class MessageKind(enum.Enum):
     IDENTIFY = "identify"
     SEND = "send"
     JOIN = "join"
-    PART = "part"
+    LEAVE = "leave"
+    LIST_CHANNELS = "list_channels"
 
 
 class Message(abc.ABC):
@@ -69,7 +69,15 @@ class LeaveMessage(Message):
 
     @staticmethod
     def kind() -> MessageKind:
-        return MessageKind.PART
+        return MessageKind.LEAVE
+
+
+class ListChannelsMessage(Message):
+    __match_args__ = ()
+
+    @staticmethod
+    def kind() -> MessageKind:
+        return MessageKind.LIST_CHANNELS
 
 
 class MessageFactory:
@@ -99,3 +107,6 @@ class MessageFactory:
 
     def deserialize_leave(self, data: JSONObject) -> Message:
         return LeaveMessage(data["where"])
+
+    def deserialize_list_channels(self, _: JSONObject) -> Message:
+        return ListChannelsMessage()

@@ -29,6 +29,9 @@ class Server:
 
         self._message_factory = MessageFactory()
 
+    def get_channel_names(self) -> list[str]:
+        return list(self._channels.keys())
+
     def get_user(self, name: str) -> Optional[Client]:
         return self._users.get(name)
 
