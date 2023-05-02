@@ -2,6 +2,7 @@ import asyncio
 import json
 from json import JSONDecodeError
 from typing import Optional
+from ssl import SSLContext
 
 from websockets.exceptions import ConnectionClosedError
 from websockets.server import WebSocketServerProtocol, serve
@@ -19,10 +20,12 @@ class Server:
 
     _message_factory: MessageFactory
 
-    def __init__(self) -> None:
+    def __init__(self, ssl: Optional[SSLContext] = None) -> None:
         self._connections = {}
         self._users = {}
         self._channels = {}
+
+        self._ssl = ssl
 
         self._message_factory = MessageFactory()
 
@@ -68,5 +71,5 @@ class Server:
         print(f"Disconnection from {ws.remote_address}")
 
     async def listen(self, port: int):
-        async with serve(self.handle_messages, "", port):
+        async with serve(self.handle_messages, "", port, ssl=self._ssl):
             await asyncio.Future()
