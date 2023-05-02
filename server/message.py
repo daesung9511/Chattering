@@ -61,8 +61,8 @@ class JoinMessage(Message):
         return MessageKind.JOIN
 
 
-class PartMessage(Message):
-    __match_args__ = ("part",)
+class LeaveMessage(Message):
+    __match_args__ = ("where",)
 
     def __init__(self, where: str) -> None:
         self.where = where
@@ -96,3 +96,6 @@ class MessageFactory:
 
     def deserialize_join(self, data: JSONObject) -> Message:
         return JoinMessage(data["where"])
+
+    def deserialize_leave(self, data: JSONObject) -> Message:
+        return LeaveMessage(data["where"])

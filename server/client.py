@@ -7,9 +7,22 @@ from typing import TYPE_CHECKING, Callable
 
 from websockets.server import WebSocketServerProtocol
 
-from .error import Error, InvalidUsernameError, NameInUseError, encode_error
-from .message import IdentifyMessage, JoinMessage, Message, MessageFactory, SendMessage
-from .reply import MessageReply, Reply, ReplyFactory, IdentifiedReply
+from .error import (
+    Error,
+    InvalidUsernameError,
+    NameInUseError,
+    NotInChannelError,
+    encode_error,
+)
+from .message import (
+    IdentifyMessage,
+    JoinMessage,
+    LeaveMessage,
+    Message,
+    MessageFactory,
+    SendMessage,
+)
+from .reply import IdentifiedReply, MessageReply, Reply, ReplyFactory
 from .types import JSONObject
 
 if TYPE_CHECKING:
@@ -76,7 +89,7 @@ class Client:
                     self._server.add_user(self, name)
                     self._name = name
                     self._handle_message = self._regular_handler
-                    self.reply(IdentifiedReply()    )
+                    self.reply(IdentifiedReply())
             case _:  # Ignore other messages.
                 pass
 
@@ -94,6 +107,13 @@ class Client:
                 if channel := self._server.get_channel(where):
                     self._channels[where] = channel
                     channel.add_user(self)
+            case LeaveMessage(where):
+                self._log_address(f"leaving channel {where}")
+                if channel := self._channels.get(where):
+                    del self._channels[where]
+                    channel.remove_user(self)
+                else:
+                    self.error(NotInChannelError(where))
             case _:  # Ignore other messages.
                 pass
 
