@@ -1,3 +1,6 @@
 __pycache__
 .vscode
 .idea
+venv
+.python-version
+.DS_Store

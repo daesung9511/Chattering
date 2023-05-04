@@ -1,0 +1,36 @@
+.message_box {
+    height: 30em;
+    overflow-y: scroll;
+    border-color: #ddd;
+    border-width: 1px;
+    border-radius: 4px 4px 4px 4px;
+    border-style: solid;
+    border-bottom: none;
+}
+
+#message_wrapper {
+    display: none;
+}
+#channel_loop{
+    display: none;
+}
+#type_manual{
+    display: none;
+    height: 20px;
+    width: auto;
+}
+#leave_btn{
+    display: none;
+    float: right;
+    height: 20px;
+}
+#channel {
+    display: none;
+    width: 19%;
+    border-radius: 4px 4px 4px 4px;
+}
+#message {
+    float: right;
+    width: 100%;
+    border-radius: 4px 4px 4px 4px;
+}
