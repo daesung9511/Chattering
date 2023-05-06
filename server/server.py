@@ -69,6 +69,12 @@ class Server:
         finally:
             del self._connections[ws]
             if (name := client.name) and name in self._users:
+                # Remove user from each channel they're in.
+                user = self._users[name]
+                for channel in user.channels:
+                    channel.remove_user(user)
+
+                # And finally remove them from the users.
                 del self._users[name]
 
         print(f"Disconnection from {ws.remote_address}")

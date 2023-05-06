@@ -132,5 +132,9 @@ class Client:
             pass
 
     @property
+    def channels(self) -> list[Channel]:
+        return list(self._channels.values())
+
+    @property
     def name(self) -> str:
         return self._name
