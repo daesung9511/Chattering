@@ -1,4 +1,4 @@
-var server = 'ws://localhost:8008/';
+var server = 'wss://localhost:8008/';
 var channelError = "Not in channel"
 function zPad(n) {
     if (n < 10) return '0' + n;
@@ -48,7 +48,7 @@ function write_message_from_cache(optionValue){
     if(listOfMessages === undefined) return;
     for(let i = 0 ; i <listOfMessages.length; i = i+1){
         let author = listOfMessages.at(i).data.author;
-        if(author === undefined){
+        if(author === undefined || author === name){
             author = "me";
         }
         var line = '[' + timestamp() + '] ' +author+": "+ listOfMessages.at(i).data.content + '<br>';
@@ -122,16 +122,16 @@ function defaultOnMessage (event) {
     if(message.kind === "identified") return;
     console.log(event);
     write_to_mbox(JSON.parse(event.data));
-};
+}
 
-
+var name;
 $(document).ready(function() {
 
     $('#name').focus();
     $('#connect-form').submit(function() {
 
         socket = new WebSocket(server);
-        var name = $('#name').val();
+        name = $('#name').val();
         socket.onerror = function(error) {
             console.log('WebSocket Error: ' + error);
         };

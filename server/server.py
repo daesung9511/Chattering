@@ -11,8 +11,8 @@ from .channel import Channel
 from .client import Client
 from .message import MessageFactory
 from .types import JSONObject
-
-
+from ratelimit import limits, RateLimitException
+from backoff import on_exception, expo
 class Server:
     _connections: dict[WebSocketServerProtocol, Client]
     _users: dict[str, Client]  # Clients that have identified.
@@ -53,20 +53,24 @@ class Server:
         self._connections[ws] = client
 
         print(f"Connection from {ws.remote_address}")
-
+        limit_for_each_connection = limits(calls=15, period=900, raise_on_limit=True)
         try:
             async for message in ws:
                 try:
                     payload: JSONObject = json.loads(message)
                     kind = payload["kind"]
                     data = payload["data"]
-                    client.consume_raw(kind, data)
+                    limit_for_each_connection.__call__(client.consume_raw)(kind, data)
                 except JSONDecodeError as ex:
                     print(f"Bad JSON, error at {ex.lineno}:{ex.pos}. Ignoring:")
                     print(ex.doc)
+
         except ConnectionClosedError:
             pass
+        except RateLimitException:
+            pass
         finally:
+
             del self._connections[ws]
             if (name := client.name) and name in self._users:
                 # Remove user from each channel they're in.
@@ -76,7 +80,6 @@ class Server:
 
                 # And finally remove them from the users.
                 del self._users[name]
-
         print(f"Disconnection from {ws.remote_address}")
 
     async def listen(self, port: int):
