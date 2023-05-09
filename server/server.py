@@ -12,11 +12,13 @@ from .client import Client
 from .message import MessageFactory
 from .types import JSONObject
 from ratelimit import limits, RateLimitException
-from backoff import on_exception, expo
+
+
 class Server:
     _connections: dict[WebSocketServerProtocol, Client]
     _users: dict[str, Client]  # Clients that have identified.
     _channels: dict[str, Channel]
+    _passwds: dict[str, str]  # name to password
 
     _message_factory: MessageFactory
 
@@ -24,6 +26,7 @@ class Server:
         self._connections = {}
         self._users = {}
         self._channels = {}
+        self._passwds = {}
 
         self._ssl = ssl
 
@@ -44,6 +47,18 @@ class Server:
             channel = Channel(self, name)
             self._channels[name] = channel
             return channel
+
+    def add_passwd(self, name: str, passwd: str):
+        self._passwds[name] = passwd
+
+    def has_passwd(self, name: str) -> bool:
+        return name in self._passwds
+
+    def check_passwd(self, name: str, passwd: Optional[str]) -> bool:
+        if right_passwd := self._passwds.get(name):  # Check if name has passwd.
+            return passwd == right_passwd  # Validate passwd.
+
+        return True  # Otherwise the name has no passwd.
 
     def add_user(self, client: Client, name: str):
         self._users[name] = client
@@ -70,7 +85,6 @@ class Server:
         except RateLimitException:
             pass
         finally:
-
             del self._connections[ws]
             if (name := client.name) and name in self._users:
                 # Remove user from each channel they're in.

@@ -9,6 +9,8 @@ class ErrorCode(enum.IntEnum):
     NAME_IN_USE = auto()
     INVALID_NAME = auto()
     NOT_IN_CHANNEL = auto()
+    INVALID_PASSWD = auto()
+    ALREADY_REGISTERED = auto()
 
 
 class Error(abc.ABC):
@@ -49,6 +51,22 @@ class NotInChannelError(Error):
 
     def code(self) -> int:
         return ErrorCode.NOT_IN_CHANNEL
+
+
+class InvalidPasswd(Error):
+    def message(self) -> str:
+        return "Could not get name. Invalid passwd."
+
+    def code(self) -> int:
+        return ErrorCode.INVALID_PASSWD
+
+
+class AlreadyRegisteredError(Error):
+    def message(self) -> str:
+        return "You have already registered with that name."
+
+    def code(self) -> int:
+        return ErrorCode.ALREADY_REGISTERED
 
 
 # Error objects are simple so a regular decoder will do.

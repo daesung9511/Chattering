@@ -7,7 +7,7 @@ Things like identifying, sending text messages, and joining/leaving channels.
 import abc
 import enum
 import inspect
-from typing import Callable
+from typing import Callable, Optional
 
 from .types import JSONObject
 
@@ -18,6 +18,7 @@ class MessageKind(enum.Enum):
     JOIN = "join"
     LEAVE = "leave"
     LIST_CHANNELS = "list_channels"
+    REGISTER_NAME = "register_name"
 
 
 class Message(abc.ABC):
@@ -28,14 +29,26 @@ class Message(abc.ABC):
 
 
 class IdentifyMessage(Message):
-    __match_args__ = ("name",)
+    __match_args__ = ("name", "passwd")
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, passwd: Optional[str] = None) -> None:
         self.name = name
+        self.passwd = passwd
 
     @staticmethod
     def kind() -> MessageKind:
         return MessageKind.IDENTIFY
+
+
+class RegisterNameMessage(Message):
+    __match_args__ = ("passwd",)
+
+    def __init__(self, passwd: str) -> None:
+        self.passwd = passwd
+
+    @staticmethod
+    def kind() -> MessageKind:
+        return MessageKind.REGISTER_NAME
 
 
 class SendMessage(Message):
@@ -97,7 +110,7 @@ class MessageFactory:
         raise ValueError(f"Message kind {kind} is not valid!")
 
     def deserialize_identify(self, data: JSONObject) -> Message:
-        return IdentifyMessage(data["name"])
+        return IdentifyMessage(data["name"], data.get("passwd", None))
 
     def deserialize_send(self, data: JSONObject) -> Message:
         return SendMessage(data["content"], data["where"])
@@ -110,3 +123,6 @@ class MessageFactory:
 
     def deserialize_list_channels(self, _: JSONObject) -> Message:
         return ListChannelsMessage()
+
+    def deserialize_register_name(self, data: JSONObject) -> Message:
+        return RegisterNameMessage(data["passwd"])

@@ -8,7 +8,9 @@ from typing import TYPE_CHECKING, Callable
 from websockets.server import WebSocketServerProtocol
 
 from .error import (
+    AlreadyRegisteredError,
     Error,
+    InvalidPasswd,
     InvalidUsernameError,
     NameInUseError,
     NotInChannelError,
@@ -21,6 +23,7 @@ from .message import (
     ListChannelsMessage,
     Message,
     MessageFactory,
+    RegisterNameMessage,
     SendMessage,
 )
 from .reply import IdentifiedReply, ListChannelsReply, MessageReply, Reply, ReplyFactory
@@ -32,10 +35,10 @@ if TYPE_CHECKING:
 
 
 class Client:
+    """A connection between a server and client."""
+
     # lowercase names that can have dashes inbetween but not at the start/end.
     __valid_name = re.compile("^[a-z][a-z-]*[a-z]+$")
-
-    """A connection between a server and client."""
 
     _handle_message: Callable[[Message], None]
 
@@ -77,7 +80,7 @@ class Client:
     # Handle only identify packets and reject other messages.
     def _identify_handler(self, message: Message):
         match message:
-            case IdentifyMessage(name):
+            case IdentifyMessage(name, passwd):
                 self._log_address(f"identify as {name}")
                 if not self.__valid_name.match(name):
                     self.error(InvalidUsernameError())
@@ -85,12 +88,14 @@ class Client:
 
                 if self._server.get_user(name):
                     self.error(NameInUseError(name))
-                else:
-                    print(f"Registering connection as user {name}")
+                elif self._server.check_passwd(name, passwd):
+                    self._log_address(f"Registering connection as user {name}")
                     self._server.add_user(self, name)
                     self._name = name
                     self._handle_message = self._regular_handler
                     self.reply(IdentifiedReply())
+                else:
+                    self.error(InvalidPasswd())
             case _:  # Ignore other messages.
                 pass
 
@@ -103,6 +108,15 @@ class Client:
                     user.send_message(self, content)
                 if channel := self._server.get_channel(where):
                     channel.send_message(self, content)
+            case RegisterNameMessage(passwd):
+                # By this point, the name hasn't been registered yet.
+                # check if a user already issued this command during the connection.
+
+                if self._server.has_passwd(self.name):
+                    # Tell user you already registered the name with a passwd.
+                    self.error(AlreadyRegisteredError())
+                else:
+                    self._server.add_passwd(self.name, passwd)
             case JoinMessage(where):
                 self._log_address(f"joining channel {where}")
                 if channel := self._server.get_channel(where):
