@@ -119,6 +119,12 @@ function leave_channel(){
 }
 function defaultOnMessage (event) {
     let message = JSON.parse(event.data);
+    if(message.code == "4") {
+        location.reload();
+        alert("Password is wrong! Please, try again.")
+        return;
+
+    }
     if(message.kind === "identified") return;
     console.log(event);
     write_to_mbox(JSON.parse(event.data));
@@ -132,6 +138,7 @@ $(document).ready(function() {
 
         socket = new WebSocket(server);
         name = $('#name').val();
+        passwd = $('#password').val();
         socket.onerror = function(error) {
             console.log('WebSocket Error: ' + error);
         };
@@ -140,6 +147,7 @@ $(document).ready(function() {
             $('#jumbotron').hide();
             write_to_connection('Connected to: ' + server);
             socket.send(JSON.stringify({"kind": "identify", "data": { "name": name}}));
+            socket.send(JSON.stringify({"kind": "register_name", "data":{"passwd": passwd}}));
             $('#message_wrapper').show();
             $('#channel_loop').show();
             $('#channel').show();

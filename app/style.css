@@ -24,6 +24,9 @@
     float: right;
     height: 20px;
 }
+#connect_btn{
+    height: 1200%;
+}
 #channel {
     display: none;
     width: 19%;
